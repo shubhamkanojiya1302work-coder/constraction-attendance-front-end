@@ -8,7 +8,10 @@ Frontend for a construction-site attendance app ("FieldSite"). The backend is a 
 
 There are three screens:
 - **Login** (`/`).
-- **FieldSite** (`/fieldsite`, `pages/FieldSite.jsx`): the **labour/worker** view of their own attendance (shift status, daily punches, weekly timesheet).
+- **FieldSite** (`/fieldsite`, `pages/FieldSite.jsx`): the **labour/worker** view. It has three tabs, switched with React state (no URL change):
+  - **Check-In** (the default): greeting card, "You are at the site" geofence banner, selfie check-in, shift timing and today's status tiles, site code and QR scan card, safety reminder, and a call-supervisor link. The **Start Check-In** button opens the **Site Check-In modal** (`fieldsite/CheckInModal`) straight away. The modal has a 4-digit site access code (`fieldsite/AccessCodeInput`), GPS and shift-time tiles, a selfie row with Take Selfie / Retake, and Confirm/Cancel. The selfie button uses a hidden `<input type="file" accept="image/*" capture="user">`, so phones open the front camera. Confirm only enables once the code matches and a selfie has been taken. Everything is still local: the code is compared against `checkIn.accessCode` in the mock data (this must move to the backend), the GPS zone and face-match % are mock values, nothing is uploaded, and the QR scan buttons do nothing.
+  - **Attendance**: shift status, daily punches, approval and weekly timesheet for the selected day.
+  - **My Log**: no screen of its own yet, so it shows the Attendance content.
 - **SiteDesk** (`/sitedesk`, `pages/SiteDesk.jsx`): the **admin/supervisor** dashboard (stats, weekly ledger, hours chart, punch inspector, CSV export).
 
 FieldSite and SiteDesk are separate pages for different users. Keep them in separate files, and make each page work on both desktop and mobile with Tailwind breakpoints (`lg` = 1024px is the desktop switch), not by rendering a different component per screen size.
@@ -30,9 +33,9 @@ There's no test framework, and the project is plain JS/JSX with no TypeScript.
 - **Tailwind CSS v4** via the `@tailwindcss/vite` plugin. There's no `tailwind.config.js` or PostCSS config. Tailwind is enabled by `@import "tailwindcss";` in `src/index.css`, which also holds the few custom global classes (e.g. `.login-background`). Styling is otherwise done with utility classes inline in JSX. The brand colour is the arbitrary value `#965000` (hover `#794000`).
 - `src/main.jsx` → `App.jsx` → `pages/` (route-level screens) → `components/`. There's no router yet: `App` picks the page from `window.location.pathname`.
 - `src/components/` is grouped by where a component is used:
-  - `layout/`: shared page chrome (`Sidebar`, `Topbar`, `AppBar`, `BottomNav`). These take their menu `items` (`[{ id, label, icon }]`) as props from the page, so any page can reuse them. Put new reusable nav/header/footer pieces here, not in a page-specific folder. The pattern is `Sidebar` (or `AppBar` tabs) from `lg` up and `BottomNav` below `lg`, with the same items.
-  - `ui/`: small generic building blocks (`Card`, `Avatar`).
-  - `fieldsite/` and `sitedesk/`: sections used by only that one page.
+  - `layout/`: shared page chrome (`Sidebar`, `Topbar`, `AppBar`, `BottomNav`). These take their menu `items` (`[{ id, label, icon }]`) as props from the page, so any page can reuse them. Put new reusable nav/header/footer pieces here, not in a page-specific folder. The pattern is `Sidebar` (or `AppBar` tabs) from `lg` up and `BottomNav` below `lg`, with the same items. `BottomNav` is fixed to the bottom and pads for the phone's safe area, so pages that use it need about `pb-28`/`pb-32` on `main` below `lg`.
+  - `ui/`: small generic building blocks (`Card`, `Avatar`, `Modal`). `Modal` is a bottom sheet on phones and a centred card from `sm` up. It closes on Escape, the X button or a backdrop click, and locks page scroll. Render it conditionally (`{x && <Modal open …>}`) so its contents reset each time it opens.
+  - `fieldsite/` and `sitedesk/`: sections used by only that one page. Before adding a near-copy of a section, check whether the existing one can take a prop instead. For example, `fieldsite/WorkerCard` takes optional `title`, `status`, `site` and `siteIcon`, so the Check-In greeting and the Attendance header share one component.
   - `LoginForm.jsx` sits directly in `components/`.
 - `src/utils/`: plain helpers (e.g. `exportCsv.js`).
 - Components get their data through props. Only the pages import from `src/data/`.
