@@ -11,7 +11,7 @@ import {
 
 function LoginForm() {
   // Store login form values
-  const [identifier, setIdentifier] = useState("");
+  const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
 
   // Store checkbox value
@@ -25,7 +25,7 @@ function LoginForm() {
     event.preventDefault();
 
     console.log({
-      identifier,
+      userName,
       password,
       rememberMe,
     });
@@ -59,8 +59,8 @@ function LoginForm() {
 
             <input
               type="text"
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
+              value={userName}
+              onChange={(event) => setUserName(event.target.value)}
               placeholder="e.g. +1 (555) 019-2831 or worker@site.com"
               autoComplete="username"
               required
@@ -72,7 +72,7 @@ function LoginForm() {
         {/* Password */}
         <div>
           <label className="block text-xs font-medium text-slate-800 mb-2">
-            PIN or Password
+            PIN
           </label>
 
           <div className="relative">
