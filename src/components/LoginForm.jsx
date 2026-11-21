@@ -11,7 +11,7 @@ import {
 
 function LoginForm() {
   // Store login form values
-  const [userName, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
 
   // Store checkbox value
@@ -59,7 +59,7 @@ function LoginForm() {
 
             <input
               type="text"
-              value={userName}
+              value={identifier}
               onChange={(event) => setIdentifier(event.target.value)}
               placeholder="e.g. +1 (555) 019-2831 or worker@site.com"
               autoComplete="username"
