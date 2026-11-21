@@ -1,4 +1,3 @@
-
 @import "tailwindcss";
 
 body {
@@ -7,10 +6,7 @@ body {
 }
 
 .login-background {
-  background-image: radial-gradient(
-    #d6d6df 1px,
-    transparent 1px
-  );
+  background-image: radial-gradient(#d6d6df 1px, transparent 1px);
 
   background-size: 16px 16px;
 }
