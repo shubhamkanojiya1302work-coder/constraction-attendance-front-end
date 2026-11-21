@@ -16,13 +16,14 @@ export default function Sidebar({ title, items, active, onSelect }) {
           <button
             key={id}
             onClick={() => onSelect(id)}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
+            aria-current={active === id ? "page" : undefined}
+            className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-[15px] transition ${
               active === id
-                ? "bg-indigo-50 font-medium text-slate-900"
-                : "text-slate-700 hover:bg-slate-50"
+                ? "bg-[#965000] font-medium text-white shadow-sm"
+                : "text-slate-700 hover:bg-indigo-50"
             }`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-5 w-5" />
             {label}
           </button>
         ))}

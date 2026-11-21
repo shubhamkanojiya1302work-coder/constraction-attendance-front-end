@@ -12,7 +12,16 @@ There are three screens:
   - **Check-In** (the default): greeting card, "You are at the site" geofence banner, selfie check-in, shift timing and today's status tiles, site code and QR scan card, safety reminder, and a call-supervisor link. The **Start Check-In** button opens the **Site Check-In modal** (`fieldsite/CheckInModal`) straight away. The modal has a 4-digit site access code (`fieldsite/AccessCodeInput`), GPS and shift-time tiles, a selfie row with Take Selfie / Retake, and Confirm/Cancel. The selfie button uses a hidden `<input type="file" accept="image/*" capture="user">`, so phones open the front camera. Confirm only enables once the code matches and a selfie has been taken. Everything is still local: the code is compared against `checkIn.accessCode` in the mock data (this must move to the backend), the GPS zone and face-match % are mock values, nothing is uploaded, and the QR scan buttons do nothing.
   - **Attendance**: shift status, daily punches, approval and weekly timesheet for the selected day.
   - **My Log**: no screen of its own yet, so it shows the Attendance content.
-- **SiteDesk** (`/sitedesk`, `pages/SiteDesk.jsx`): the **admin/supervisor** dashboard (stats, weekly ledger, hours chart, punch inspector, CSV export).
+- **SiteDesk** (`/sitedesk`, `pages/SiteDesk.jsx`): the **admin/supervisor** app. The page is thin: it wraps everything in `layout/DashboardLayout`, holds the active nav item, and passes mock data into one of two view components, `sitedesk/LiveAttendanceView` (`roster` prop) and `sitedesk/RecordsView` (`data` prop). A new SiteDesk screen should follow the same pattern: a `sitedesk/<Name>View` component that takes its data as props, plus a nav item and a branch in the page.
+  - **Live Attendance** (the default): review banner, three summary cards (`sitedesk/SummaryCard`), trade chips with a name/phone search (`sitedesk/TradeFilter`), the worker roster (`sitedesk/WorkerRow`), and `ui/Pagination` (5 per page). Mock data is `liveRoster`. "Review N Items" switches to a "Needs Review" filter (late or unverified). Refresh and View Details are placeholders.
+  - **All Records**: "Daily Attendance Records". It has a header with a date button and Export to Excel (`sitedesk/RecordsHeader`), a site + status filter (All / Present / Half Day / Missing Out, `sitedesk/RecordsFilter`), a payroll-ready stat (`sitedesk/PayrollStatCard`), the roster table (`sitedesk/RosterTable`, 6 per page), and a detail panel for the selected row (`sitedesk/RecordDetail`: face scans, duration, location, verification, Edit Hours / Approve). Per-status labels and pill tones live in `sitedesk/recordStyles.js`. Mock data is `dailyRecords`. Export downloads a CSV (via `downloadCsv` in `utils/exportCsv.js`, with a BOM so Excel reads it as UTF-8). Approve only lasts for the session, and can't be used on a record with no check-out. The date picker, site picker and Edit Hours are placeholders.
+  - **Sites** (`sitedesk/SitesView`, `data` = `sitesDirectory`): the "Construction Sites" directory.
+    - The page has a heading with **Add New Site**, All / Active Projects / Completed tabs with a name/code/address search, a list of `sitedesk/SiteCard`s, and the selected site's `sitedesk/PerimeterPanel`. The panel shows a geofence picture (`GeofencePreview`, schematic and not to scale), a radius control (`RadiusSlider`, 50–500 m with presets), coordinates, shift rules, assigned supervisors, and Save & Broadcast Perimeter.
+    - **Add New Site** and **Edit Site** open `sitedesk/SiteFormModal`. It's one scrolling form in four sections (Project Info, Shift Window, Geofence Zone, Supervisors). The numbered bar jumps to a section, "+ Assign" opens it at Supervisors, and it validates on submit (required fields, shift end after start, lat/lng range, at least one supervisor, no duplicate project code). "Use my location" fills lat/lng from the browser.
+    - Shared helpers (kind → icon, radius limits and presets, `to12h`) are in `sitedesk/siteFormat.js`.
+    - New sites, edits and radius changes only last for the session (local state in `SitesView`). Its `onSaveSite`, `onSaveRadius`, `onTestKiosk` and `onViewLog` props are where the API calls go; the page doesn't pass them yet.
+  - In both views, filtering, search and paging run in the browser over the loaded list, and counts come from that list. With a real API they should move to the server.
+  - The older single-worker timesheet dashboard (`sitedesk/ProfileCard`, `StatsRow`, `StatCard`, `LedgerTable`, `ShiftRow`, `DistributionChart`, `SignOffNotice`, `PunchInspector`, `CorrectionHelp`, `exportShiftsCsv`, plus `payPeriods`/`weeklyStats`/`weekShifts` data) isn't used on any page now.
 
 FieldSite and SiteDesk are separate pages for different users. Keep them in separate files, and make each page work on both desktop and mobile with Tailwind breakpoints (`lg` = 1024px is the desktop switch), not by rendering a different component per screen size.
 
@@ -34,10 +43,23 @@ There's no test framework, and the project is plain JS/JSX with no TypeScript.
 - `src/main.jsx` → `App.jsx` → `pages/` (route-level screens) → `components/`. There's no router yet: `App` picks the page from `window.location.pathname`.
 - `src/components/` is grouped by where a component is used:
   - `layout/`: shared page chrome (`Sidebar`, `Topbar`, `AppBar`, `BottomNav`). These take their menu `items` (`[{ id, label, icon }]`) as props from the page, so any page can reuse them. Put new reusable nav/header/footer pieces here, not in a page-specific folder. The pattern is `Sidebar` (or `AppBar` tabs) from `lg` up and `BottomNav` below `lg`, with the same items. `BottomNav` is fixed to the bottom and pads for the phone's safe area, so pages that use it need about `pb-28`/`pb-32` on `main` below `lg`.
-  - `ui/`: small generic building blocks (`Card`, `Avatar`, `Modal`). `Modal` is a bottom sheet on phones and a centred card from `sm` up. It closes on Escape, the X button or a backdrop click, and locks page scroll. Render it conditionally (`{x && <Modal open …>}`) so its contents reset each time it opens.
+    - `DashboardLayout` is the full desktop-first page frame (Sidebar + Topbar + `main` + BottomNav, with the right padding). Use it for any admin/supervisor page instead of wiring those pieces by hand. Props: `brand`, `navItems`, `activeNav`, `onNavigate`, `siteName`, `user`, `children`.
+  - `ui/`: small generic building blocks. Reuse these before writing new markup for the same thing:
+    - `Card`: the white rounded panel.
+    - `Avatar`: photo or initials. Props: `size`, `rounded`, `tone`, `letters`. Pair it with `initialTone(name)` for the coloured single-letter circles.
+    - `StatusPill`: the rounded label with a dot. `tone` is `success`, `warning`, `danger` or `neutral`.
+    - `PageHeading`: eyebrow, h1, subtitle and right-side actions.
+    - `SegmentedTabs`: tabs in a tinted bar.
+    - `FilterChips`: brand-filled pill filters.
+    - `SearchInput`.
+    - `Pagination`: Previous / numbers with "…" / Next, 1-based.
+    - `TextField`: a labelled input on a tinted background with an optional icon. Use `as="select"` for a dropdown and `error` for a red message underneath.
+    - `Modal`: a bottom sheet on phones and a centred card from `sm` up. It closes on Escape, the X button or a backdrop click, and locks page scroll. Props: `title` (can be a node), `description`, `icon`, `size` (`md` or `lg`), `accent` (gradient top bar), and `footer` (pinned while the body scrolls). Render it conditionally (`{x && <Modal open …>}`) so its contents reset each time it opens.
+    - `SegmentedTabs` options can also take a `dotClass`, and `SearchInput` has `variant="tinted"` for use inside white cards.
   - `fieldsite/` and `sitedesk/`: sections used by only that one page. Before adding a near-copy of a section, check whether the existing one can take a prop instead. For example, `fieldsite/WorkerCard` takes optional `title`, `status`, `site` and `siteIcon`, so the Check-In greeting and the Attendance header share one component.
   - `LoginForm.jsx` sits directly in `components/`.
-- `src/utils/`: plain helpers (e.g. `exportCsv.js`).
+- `src/hooks/`: shared React hooks. `usePagination(items, pageSize)` returns `{ page, setPage, pageCount, visible }` and keeps the page in range when the list shrinks. Call `setPage(1)` when a filter changes.
+- `src/utils/`: plain helpers (e.g. `exportCsv.js` with `downloadCsv(rows, filename)`).
 - Components get their data through props. Only the pages import from `src/data/`.
 - Env vars: `.env` defines `VITE_PORT` and `VITE_API_URL` (backend base URL, read via `import.meta.env.VITE_API_URL`).
 
