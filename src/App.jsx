@@ -6,8 +6,17 @@ import SiteDesk from "./pages/SiteDesk";
 //   /           -> Login
 //   /fieldsite  -> FieldSite (labour view)
 //   /sitedesk   -> SiteDesk (admin dashboard)
-function App() {
+// The paths are relative to Vite's base: "/" in dev, and
+// "/constraction-attendance-front-end/" on GitHub Pages (see vite.config.js).
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function currentPath() {
   const path = window.location.pathname;
+  return path.startsWith(BASE) ? path.slice(BASE.length) || "/" : path;
+}
+
+function App() {
+  const path = currentPath();
 
   if (path.startsWith("/fieldsite")) return <FieldSite />;
   if (path.startsWith("/sitedesk")) return <SiteDesk />;

@@ -7,7 +7,7 @@ export default function AppBar({ title, items = [], active, onSelect }) {
   return (
     <header className="sticky top-0 z-20 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 lg:px-8">
-        <span className="text-lg font-semibold">{title}</span>
+        <span className="text-xl font-semibold">{title}</span>
 
         <div className="flex items-center gap-6">
           {items.length > 0 && (
@@ -27,7 +27,7 @@ export default function AppBar({ title, items = [], active, onSelect }) {
               ))}
             </nav>
           )}
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#965000] text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#965000] text-white">
             <User className="h-4 w-4" />
           </span>
         </div>
