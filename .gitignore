@@ -25,7 +25,6 @@ dist-ssr
 *.sw?
 
 # Claude Code
-CLAUDE.md
 CLAUDE.local.md
 .claude/
 .mcp.json
