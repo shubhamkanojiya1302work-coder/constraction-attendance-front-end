@@ -6,13 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Frontend for a construction-site attendance app ("FieldSite"). The backend is a sibling project at `../constraction-attendance-backend` (separate repo). Nothing is wired to the backend yet: `LoginForm` just logs the form values, and the attendance pages read mock data from `src/data/attendanceData.js` (shaped like the future API responses, so swapping in live data should only touch the pages).
 
-There are three screens:
+There are two apps and five pages (routes in `App.jsx`):
 - **Login** (`/`).
 - **FieldSite** (`/fieldsite`, `pages/FieldSite.jsx`): the **labour/worker** view. It has three tabs, switched with React state (no URL change):
   - **Check-In** (the default): greeting card, "You are at the site" geofence banner, selfie check-in, shift timing and today's status tiles, site code and QR scan card, safety reminder, and a call-supervisor link. The **Start Check-In** button opens the **Site Check-In modal** (`fieldsite/CheckInModal`) straight away. The modal has a 4-digit site access code (`fieldsite/AccessCodeInput`), GPS and shift-time tiles, a selfie row with Take Selfie / Retake, and Confirm/Cancel. The selfie button uses a hidden `<input type="file" accept="image/*" capture="user">`, so phones open the front camera. Confirm only enables once the code matches and a selfie has been taken. Everything is still local: the code is compared against `checkIn.accessCode` in the mock data (this must move to the backend), the GPS zone and face-match % are mock values, nothing is uploaded, and the QR scan buttons do nothing.
   - **Attendance**: shift status, daily punches, approval and weekly timesheet for the selected day.
   - **My Log**: no screen of its own yet, so it shows the Attendance content.
-- **SiteDesk** (`/sitedesk`, `pages/SiteDesk.jsx`): the **admin/supervisor** app. The page is thin: it wraps everything in `layout/DashboardLayout`, holds the active nav item, and passes mock data into one of two view components, `sitedesk/LiveAttendanceView` (`roster` prop) and `sitedesk/RecordsView` (`data` prop). A new SiteDesk screen should follow the same pattern: a `sitedesk/<Name>View` component that takes its data as props, plus a nav item and a branch in the page.
+- **SiteDesk**: the **admin/supervisor** app. It's **three separate pages** with their own URLs. Keep them as separate page files; don't merge them back into one page that swaps views.
+  - `/sitedesk` is `pages/sitedesk/LiveAttendancePage.jsx`.
+  - `/sitedesk/records` is `pages/sitedesk/RecordsPage.jsx`.
+  - `/sitedesk/sites` is `pages/sitedesk/SitesPage.jsx`.
+  - Each page is thin: it wraps its view in `sitedesk/SiteDeskLayout` with `active="<nav id>"` and passes in mock data. `SiteDeskLayout` is `layout/DashboardLayout` plus the SiteDesk nav (`siteDeskNav`, each item has a `path`), and the sidebar and bottom tabs `navigate()` between the pages.
+  - To add a SiteDesk page: write a `sitedesk/<Name>View` component that takes its data as props, a `pages/sitedesk/<Name>Page.jsx`, an entry in `siteDeskNav`, and a route in `App.jsx`.
   - **Live Attendance** (the default): review banner, three summary cards (`sitedesk/SummaryCard`), trade chips with a name/phone search (`sitedesk/TradeFilter`), the worker roster (`sitedesk/WorkerRow`), and `ui/Pagination` (5 per page). Mock data is `liveRoster`. "Review N Items" switches to a "Needs Review" filter (late or unverified). Refresh and View Details are placeholders.
   - **All Records**: "Daily Attendance Records". It has a header with a date button and Export to Excel (`sitedesk/RecordsHeader`), a site + status filter (All / Present / Half Day / Missing Out, `sitedesk/RecordsFilter`), a payroll-ready stat (`sitedesk/PayrollStatCard`), the roster table (`sitedesk/RosterTable`, 6 per page), and a detail panel for the selected row (`sitedesk/RecordDetail`: face scans, duration, location, verification, Edit Hours / Approve). Per-status labels and pill tones live in `sitedesk/recordStyles.js`. Mock data is `dailyRecords`. Export downloads a CSV (via `downloadCsv` in `utils/exportCsv.js`, with a BOM so Excel reads it as UTF-8). Approve only lasts for the session, and can't be used on a record with no check-out. The date picker, site picker and Edit Hours are placeholders.
   - **Sites** (`sitedesk/SitesView`, `data` = `sitesDirectory`): the "Construction Sites" directory.
@@ -40,7 +45,7 @@ There's no test framework, and the project is plain JS/JSX with no TypeScript.
 
 - React 19 + Vite 8 (`@vitejs/plugin-react`), with `lucide-react` for icons.
 - **Tailwind CSS v4** via the `@tailwindcss/vite` plugin. There's no `tailwind.config.js` or PostCSS config. Tailwind is enabled by `@import "tailwindcss";` in `src/index.css`, which also holds the few custom global classes (e.g. `.login-background`). Styling is otherwise done with utility classes inline in JSX. The brand colour is the arbitrary value `#965000` (hover `#794000`).
-- `src/main.jsx` → `App.jsx` → `pages/` (route-level screens) → `components/`. There's no router yet: `App` picks the page from `window.location.pathname`.
+- `src/main.jsx` → `App.jsx` → `pages/` (route-level screens) → `components/`. There's no router library: `App` looks the path up in its `routes` map (exact match, and unknown paths show Login). It re-renders through `hooks/usePath`. Move between pages with `navigate("/path")` from `utils/navigation.js`, which uses `history.pushState` without a reload, so Back/Forward work. Don't use `<a href>` or `window.location` for in-app links.
 - `src/components/` is grouped by where a component is used:
   - `layout/`: shared page chrome (`Sidebar`, `Topbar`, `AppBar`, `BottomNav`). These take their menu `items` (`[{ id, label, icon }]`) as props from the page, so any page can reuse them. Put new reusable nav/header/footer pieces here, not in a page-specific folder. The pattern is `Sidebar` (or `AppBar` tabs) from `lg` up and `BottomNav` below `lg`, with the same items. `BottomNav` is fixed to the bottom and pads for the phone's safe area, so pages that use it need about `pb-28`/`pb-32` on `main` below `lg`.
     - `DashboardLayout` is the full desktop-first page frame (Sidebar + Topbar + `main` + BottomNav, with the right padding). Use it for any admin/supervisor page instead of wiring those pieces by hand. Props: `brand`, `navItems`, `activeNav`, `onNavigate`, `siteName`, `user`, `children`.
@@ -68,8 +73,8 @@ There's no test framework, and the project is plain JS/JSX with no TypeScript.
 The site is published at `https://shubhamkanojiya1302work-coder.github.io/constraction-attendance-front-end/` by `.github/workflows/deploy.yml`. On every push to `main`, the workflow runs `yarn build`, copies `dist/index.html` to `dist/404.html`, and deploys `dist/`. The repo's Pages source must be set to **GitHub Actions**, not "Deploy from a branch", which would serve the raw source and show a blank page.
 
 - `vite.config.js` sets `base` to `/constraction-attendance-front-end/` for builds only, so `yarn dev` stays at `/`. If the repo is renamed, update `PAGES_BASE` there.
-- `App.jsx` strips `import.meta.env.BASE_URL` before matching `/fieldsite` and `/sitedesk`. Any new page path or internal link must be relative to the base (use `import.meta.env.BASE_URL`), not hardcoded from `/`.
-- Deep links like `/fieldsite` work because GitHub serves `404.html` (a copy of the app) for paths with no file. They still return HTTP 404, which browsers show normally.
+- `utils/navigation.js` adds and strips `import.meta.env.BASE_URL`, so routes and `navigate()` calls use plain app paths (`/sitedesk/records`). Never hardcode the repo folder anywhere else.
+- Deep links like `/fieldsite` or `/sitedesk/sites` work because GitHub serves `404.html` (a copy of the app) for paths with no file. They still return HTTP 404, which browsers show normally.
 - `package.json` pins `"packageManager": "yarn@4.18.1"` so CI's corepack uses Yarn 4. Keep it in sync if Yarn is upgraded.
 
 ## Environment gotchas (Windows + OneDrive)
