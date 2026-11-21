@@ -41,6 +41,15 @@ There's no test framework, and the project is plain JS/JSX with no TypeScript.
 - Components get their data through props. Only the pages import from `src/data/`.
 - Env vars: `.env` defines `VITE_PORT` and `VITE_API_URL` (backend base URL, read via `import.meta.env.VITE_API_URL`).
 
+## Deployment (GitHub Pages)
+
+The site is published at `https://shubhamkanojiya1302work-coder.github.io/constraction-attendance-front-end/` by `.github/workflows/deploy.yml`. On every push to `main`, the workflow runs `yarn build`, copies `dist/index.html` to `dist/404.html`, and deploys `dist/`. The repo's Pages source must be set to **GitHub Actions**, not "Deploy from a branch", which would serve the raw source and show a blank page.
+
+- `vite.config.js` sets `base` to `/constraction-attendance-front-end/` for builds only, so `yarn dev` stays at `/`. If the repo is renamed, update `PAGES_BASE` there.
+- `App.jsx` strips `import.meta.env.BASE_URL` before matching `/fieldsite` and `/sitedesk`. Any new page path or internal link must be relative to the base (use `import.meta.env.BASE_URL`), not hardcoded from `/`.
+- Deep links like `/fieldsite` work because GitHub serves `404.html` (a copy of the app) for paths with no file. They still return HTTP 404, which browsers show normally.
+- `package.json` pins `"packageManager": "yarn@4.18.1"` so CI's corepack uses Yarn 4. Keep it in sync if Yarn is upgraded.
+
 ## Environment gotchas (Windows + OneDrive)
 
 The repo is in a OneDrive-synced folder, which has corrupted `node_modules` installs before.
